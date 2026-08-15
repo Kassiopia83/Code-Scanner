@@ -1,4 +1,4 @@
-package com.piavogt.codecheckapp.codecheck_app
+package com.piavogt.codescanner
 
 import io.flutter.embedding.android.FlutterActivity
 

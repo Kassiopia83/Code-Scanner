@@ -34,12 +34,12 @@ Zwei Optionen:
 Sobald Flutter installiert ist, im neuen Repo-Ordner:
 
 ```
-flutter create --org com.piavogt.codecheckapp --platforms=android .
+flutter create --project-name code_scanner --org com.piavogt.codescanner --platforms=android .
 flutter pub add mobile_scanner http
 flutter run
 ```
 
-(Das Flutter-Projektgerüst wurde hier noch nicht erzeugt, da `flutter create` ein installiertes Flutter SDK voraussetzt.)
+(Das Flutter-Projektgerüst wurde bereits erzeugt, siehe README.md für den aktuellen Stand.)
 
 ## Prüfen, ob alles passt
 
