@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../models/ingredient_rating.dart';
 import '../models/product.dart';
+import '../services/ingredient_classifier.dart';
 import '../services/open_beauty_facts_service.dart';
 
 class ProductScreen extends StatefulWidget {
@@ -14,6 +16,7 @@ class ProductScreen extends StatefulWidget {
 
 class _ProductScreenState extends State<ProductScreen> {
   final _service = OpenBeautyFactsService();
+  final _classifier = const IngredientClassifier();
   late final Future<Product> _future;
 
   @override
@@ -74,14 +77,70 @@ class _ProductScreenState extends State<ProductScreen> {
                 'Inhaltsstoffe',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
+              Text(
+                'Regulatorische Einstufung nach EU-Kosmetikverordnung, keine '
+                'toxikologische Bewertung. Basiert auf einer kleinen, nicht '
+                'vollständigen Startliste — "nicht erfasst" heißt nicht '
+                '"unbedenklich".',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 12),
               if (product.ingredients.isEmpty)
                 const Text('Keine Inhaltsstoffliste hinterlegt.')
               else
-                Text(product.ingredients.join(', ')),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: product.ingredients
+                      .map(
+                        (ingredient) => _IngredientChip(
+                          name: ingredient,
+                          rating: _classifier.classify(ingredient),
+                        ),
+                      )
+                      .toList(),
+                ),
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+class _IngredientChip extends StatelessWidget {
+  const _IngredientChip({required this.name, required this.rating});
+
+  final String name;
+  final IngredientRating rating;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: rating.label,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: rating.color.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: rating.color),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: rating.color,
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Text(name),
+          ],
+        ),
       ),
     );
   }
