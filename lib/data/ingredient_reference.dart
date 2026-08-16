@@ -25,6 +25,12 @@ class IngredientReferenceData {
   static Map<String, String> bannedCmr = {};
   static Map<String, String> restrictedCmr = {};
 
+  /// Banned names whose Annex II entry is actually a *conditional* ban
+  /// (e.g. "Petrolatum, except if the full refining history is known and
+  /// it can be shown that the substance ... is not a carcinogen") rather
+  /// than an unconditional one.
+  static Set<String> bannedConditional = {};
+
   static Future<void> load() async {
     final jsonString = await rootBundle.loadString(
       'assets/data/ingredient_reference.json',
@@ -38,6 +44,9 @@ class IngredientReferenceData {
     );
     restrictedCmr = Map<String, String>.from(
       data['restrictedCmr'] as Map? ?? const {},
+    );
+    bannedConditional = Set<String>.from(
+      data['bannedConditional'] as List? ?? const [],
     );
   }
 }

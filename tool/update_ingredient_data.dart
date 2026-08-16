@@ -28,6 +28,7 @@ Future<void> main() async {
   final permitted = <String>{};
   final bannedCmr = <String, String>{};
   final restrictedCmr = <String, String>{};
+  final bannedConditional = <String>{};
   String? sourceLastUpdate;
 
   for (final annex in _annexes) {
@@ -57,6 +58,7 @@ Future<void> main() async {
     switch (annex) {
       case 'II':
         final col = indexOf('Identified INGREDIENTS or substances e.g.');
+        final chemicalNameCol = indexOf('Chemical name / INN');
         if (col == null) break;
         for (final row in dataRows) {
           final names = _splitNames(row[col].toString(), ',').toList();
@@ -68,6 +70,17 @@ Future<void> main() async {
             for (final name in names) {
               bannedCmr[name] = cmr;
             }
+          }
+          // Some Annex II entries are conditional bans (e.g. "Petrolatum,
+          // except if the full refining history is known and it can be
+          // shown that the substance from which it is produced is not a
+          // carcinogen") rather than unconditional ones — flag those so
+          // the UI doesn't overstate a flat ban.
+          final chemicalName = chemicalNameCol == null
+              ? ''
+              : row[chemicalNameCol].toString();
+          if (_conditionalException.hasMatch(chemicalName)) {
+            bannedConditional.addAll(names);
           }
         }
       case 'III':
@@ -118,6 +131,7 @@ Future<void> main() async {
     'permitted': permitted.toList()..sort(),
     'bannedCmr': bannedCmr,
     'restrictedCmr': restrictedCmr,
+    'bannedConditional': bannedConditional.toList()..sort(),
   };
 
   final outFile = File('assets/data/ingredient_reference.json');
@@ -127,12 +141,14 @@ Future<void> main() async {
   );
 
   stdout.writeln(
-    'Wrote ${banned.length} banned (${bannedCmr.length} with CMR info), '
-    '${restricted.length} restricted (${restrictedCmr.length} with CMR '
-    'info), ${permitted.length} permitted ingredient names to '
-    '${outFile.path}',
+    'Wrote ${banned.length} banned (${bannedCmr.length} with CMR info, '
+    '${bannedConditional.length} conditional), ${restricted.length} '
+    'restricted (${restrictedCmr.length} with CMR info), '
+    '${permitted.length} permitted ingredient names to ${outFile.path}',
   );
 }
+
+final _conditionalException = RegExp(r'\b(except|unless)\b', caseSensitive: false);
 
 final _footnoteMarker = RegExp(r'^\(\d+\)\s*');
 

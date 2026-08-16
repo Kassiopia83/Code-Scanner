@@ -2,7 +2,11 @@ import '../data/ingredient_reference.dart';
 import '../models/ingredient_rating.dart';
 
 class IngredientClassification {
-  const IngredientClassification({required this.rating, this.cmr});
+  const IngredientClassification({
+    required this.rating,
+    this.cmr,
+    this.isConditional = false,
+  });
 
   final IngredientRating rating;
 
@@ -10,7 +14,20 @@ class IngredientClassification {
   /// lists one for this ingredient.
   final String? cmr;
 
-  String get tooltip => cmr == null ? rating.label : '${rating.label} ($cmr)';
+  /// True if the EU ban has a documented exception (e.g. Petrolatum is
+  /// banned "except if the full refining history is known and it can be
+  /// shown that the substance ... is not a carcinogen") — a flat "verboten"
+  /// would overstate this.
+  final bool isConditional;
+
+  String get tooltip {
+    final buffer = StringBuffer(rating.label);
+    if (cmr != null) buffer.write(' ($cmr)');
+    if (isConditional) {
+      buffer.write(' — mit Ausnahmeregelung, siehe COSING-Originaltext');
+    }
+    return buffer.toString();
+  }
 }
 
 class IngredientClassifier {
@@ -23,6 +40,9 @@ class IngredientClassifier {
       return IngredientClassification(
         rating: IngredientRating.banned,
         cmr: IngredientReferenceData.bannedCmr[normalized],
+        isConditional: IngredientReferenceData.bannedConditional.contains(
+          normalized,
+        ),
       );
     }
     if (euFragranceAllergens.contains(normalized)) {
