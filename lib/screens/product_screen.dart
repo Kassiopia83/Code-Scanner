@@ -57,6 +57,14 @@ class _ProductScreenState extends State<ProductScreen> {
           }
 
           final product = snapshot.data!;
+          final classifications = [
+            for (final ingredient in product.ingredients)
+              (name: ingredient, classification: _classifier.classify(ingredient)),
+          ];
+          final notable = classifications
+              .where((e) => e.classification.isNotable)
+              .toList();
+
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
@@ -71,6 +79,15 @@ class _ProductScreenState extends State<ProductScreen> {
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
               ],
+              if (product.ingredients.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Text(
+                  'Auffälligkeiten',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 8),
+                _SummaryText(entries: notable),
+              ],
               const SizedBox(height: 16),
               Text(
                 'Inhaltsstoffe',
@@ -82,8 +99,10 @@ class _ProductScreenState extends State<ProductScreen> {
                 '(COSING, Anhänge II-VI), keine toxikologische Bewertung. '
                 'Blau = häufig als Mikroplastik eingesetzt, nach einer '
                 'NGO-Liste (Beat the Microbead), nicht nach einer '
-                'offiziellen EU-Stoffliste. "Nicht erfasst" heißt nicht '
-                '"unbedenklich".',
+                'offiziellen EU-Stoffliste. Einzelne Hinweise zu '
+                'wissenschaftlich/medial diskutierten, aber (noch) nicht '
+                'EU-regulierten Risiken sind separat gekennzeichnet. '
+                '"Nicht erfasst" heißt nicht "unbedenklich".',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               const SizedBox(height: 12),
@@ -93,11 +112,11 @@ class _ProductScreenState extends State<ProductScreen> {
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
-                  children: product.ingredients
+                  children: classifications
                       .map(
-                        (ingredient) => _IngredientChip(
-                          name: ingredient,
-                          classification: _classifier.classify(ingredient),
+                        (e) => _IngredientChip(
+                          name: e.name,
+                          classification: e.classification,
                         ),
                       )
                       .toList(),
@@ -106,6 +125,46 @@ class _ProductScreenState extends State<ProductScreen> {
           );
         },
       ),
+    );
+  }
+}
+
+class _SummaryText extends StatelessWidget {
+  const _SummaryText({required this.entries});
+
+  final List<({String name, IngredientClassification classification})>
+  entries;
+
+  @override
+  Widget build(BuildContext context) {
+    if (entries.isEmpty) {
+      return const Text(
+        'Keine auffälligen Inhaltsstoffe gefunden (kein Verbot, keine '
+        'Einschränkung, kein Allergen, kein Mikroplastik, keine '
+        'dokumentierten aufkommenden Risiken).',
+      );
+    }
+    final bodyStyle = Theme.of(context).textTheme.bodyMedium;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final entry in entries)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: RichText(
+              text: TextSpan(
+                style: bodyStyle,
+                children: [
+                  TextSpan(
+                    text: '${entry.name}: ',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  TextSpan(text: entry.classification.tooltip),
+                ],
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

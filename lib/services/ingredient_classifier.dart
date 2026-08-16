@@ -1,3 +1,4 @@
+import '../data/emerging_concerns.dart';
 import '../data/ingredient_reference.dart';
 import '../models/ingredient_rating.dart';
 
@@ -6,6 +7,7 @@ class IngredientClassification {
     required this.rating,
     this.cmr,
     this.isConditional = false,
+    this.emergingConcern,
   });
 
   final IngredientRating rating;
@@ -20,6 +22,20 @@ class IngredientClassification {
   /// would overstate this.
   final bool isConditional;
 
+  /// A documented scientific/media concern that isn't (yet) EU-regulated
+  /// (e.g. Octocrylene). Independent of [rating] — a permitted ingredient
+  /// can still have one.
+  final EmergingConcern? emergingConcern;
+
+  /// Worth surfacing in a product-level summary: anything EU-flagged
+  /// (banned/restricted/allergen/microplastic) or with a documented
+  /// emerging concern. Plain "permitted, nothing notable" ingredients are
+  /// excluded so the summary doesn't drown in routine UV filters etc.
+  bool get isNotable =>
+      (rating != IngredientRating.unknown &&
+          rating != IngredientRating.permitted) ||
+      emergingConcern != null;
+
   String get tooltip {
     final buffer = StringBuffer(rating.label);
     if (cmr != null) buffer.write(' ($cmr)');
@@ -33,6 +49,9 @@ class IngredientClassification {
         'REACH-Definition',
       );
     }
+    if (emergingConcern != null) {
+      buffer.write(' — ${emergingConcern!.description}');
+    }
     return buffer.toString();
   }
 }
@@ -42,6 +61,7 @@ class IngredientClassifier {
 
   IngredientClassification classify(String ingredientName) {
     final normalized = ingredientName.trim().toLowerCase();
+    final concern = emergingConcerns[normalized];
 
     if (IngredientReferenceData.banned.contains(normalized)) {
       return IngredientClassification(
@@ -50,27 +70,37 @@ class IngredientClassifier {
         isConditional: IngredientReferenceData.bannedConditional.contains(
           normalized,
         ),
+        emergingConcern: concern,
       );
     }
     if (euFragranceAllergens.contains(normalized)) {
-      return const IngredientClassification(rating: IngredientRating.allergen);
+      return IngredientClassification(
+        rating: IngredientRating.allergen,
+        emergingConcern: concern,
+      );
     }
     if (IngredientReferenceData.restricted.contains(normalized)) {
       return IngredientClassification(
         rating: IngredientRating.restricted,
         cmr: IngredientReferenceData.restrictedCmr[normalized],
+        emergingConcern: concern,
       );
     }
     if (IngredientReferenceData.permitted.contains(normalized)) {
-      return const IngredientClassification(
+      return IngredientClassification(
         rating: IngredientRating.permitted,
+        emergingConcern: concern,
       );
     }
     if (IngredientReferenceData.microplastics.contains(normalized)) {
-      return const IngredientClassification(
+      return IngredientClassification(
         rating: IngredientRating.microplastic,
+        emergingConcern: concern,
       );
     }
-    return const IngredientClassification(rating: IngredientRating.unknown);
+    return IngredientClassification(
+      rating: IngredientRating.unknown,
+      emergingConcern: concern,
+    );
   }
 }
