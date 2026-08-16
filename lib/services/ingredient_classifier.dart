@@ -26,6 +26,13 @@ class IngredientClassification {
     if (isConditional) {
       buffer.write(' — mit Ausnahmeregelung, siehe COSING-Originaltext');
     }
+    if (rating == IngredientRating.microplastic) {
+      buffer.write(
+        ' — Quelle: Beat the Microbead "Red List" (Stand 01/2022), keine '
+        'offizielle EU-Stoffliste und breiter gefasst als die rechtliche '
+        'REACH-Definition',
+      );
+    }
     return buffer.toString();
   }
 }
@@ -57,6 +64,11 @@ class IngredientClassifier {
     if (IngredientReferenceData.permitted.contains(normalized)) {
       return const IngredientClassification(
         rating: IngredientRating.permitted,
+      );
+    }
+    if (IngredientReferenceData.microplastics.contains(normalized)) {
+      return const IngredientClassification(
+        rating: IngredientRating.microplastic,
       );
     }
     return const IngredientClassification(rating: IngredientRating.unknown);

@@ -7,6 +7,16 @@
 //
 // The fragrance allergen list below is hand-curated separately: COSING has
 // no dedicated "is an allergen" column to derive it from automatically.
+//
+// `microplastics` in the JSON is a separate, non-COSING import: the "Red
+// List" from Beat the Microbead / Plastic Soup Foundation (see
+// tool/parse_microplastics_list.dart), current as of 05.01.2022. There is
+// no official EU per-substance microplastics list to import (the REACH
+// restriction, Regulation 2023/2055, is defined by physical/chemical
+// criteria, not a named-substance list) — this NGO list is broader/more
+// precautionary than that legal definition (e.g. it includes Dimethicone,
+// which is not a solid particle), so it's kept as its own category with
+// an explicit caveat rather than folded into the COSING-derived ratings.
 
 import 'dart:convert';
 
@@ -31,6 +41,8 @@ class IngredientReferenceData {
   /// than an unconditional one.
   static Set<String> bannedConditional = {};
 
+  static Set<String> microplastics = {};
+
   static Future<void> load() async {
     final jsonString = await rootBundle.loadString(
       'assets/data/ingredient_reference.json',
@@ -47,6 +59,9 @@ class IngredientReferenceData {
     );
     bannedConditional = Set<String>.from(
       data['bannedConditional'] as List? ?? const [],
+    );
+    microplastics = Set<String>.from(
+      data['microplastics'] as List? ?? const [],
     );
   }
 }

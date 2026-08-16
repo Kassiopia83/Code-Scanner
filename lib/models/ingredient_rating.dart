@@ -5,6 +5,7 @@ enum IngredientRating {
   restricted,
   allergen,
   permitted,
+  microplastic,
   unknown;
 
   Color get color {
@@ -16,6 +17,8 @@ enum IngredientRating {
         return Colors.amber;
       case IngredientRating.permitted:
         return Colors.orange.shade800;
+      case IngredientRating.microplastic:
+        return Colors.blue.shade700;
       case IngredientRating.unknown:
         return Colors.grey;
     }
@@ -31,6 +34,8 @@ enum IngredientRating {
         return 'Deklarationspflichtiges Duftstoff-Allergen';
       case IngredientRating.permitted:
         return 'Zugelassener Farbstoff/Konservierungsstoff/UV-Filter mit Auflagen (EU)';
+      case IngredientRating.microplastic:
+        return 'Häufig als Mikroplastik-Partikel eingesetzt';
       case IngredientRating.unknown:
         return 'Nicht in der Referenzliste erfasst';
     }

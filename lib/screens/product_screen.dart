@@ -80,8 +80,10 @@ class _ProductScreenState extends State<ProductScreen> {
               Text(
                 'Regulatorische Einstufung nach EU-Kosmetikverordnung '
                 '(COSING, Anhänge II-VI), keine toxikologische Bewertung. '
-                'Deckt nur Verbote/Einschränkungen ab — "nicht erfasst" '
-                'heißt nicht "unbedenklich".',
+                'Blau = häufig als Mikroplastik eingesetzt, nach einer '
+                'NGO-Liste (Beat the Microbead), nicht nach einer '
+                'offiziellen EU-Stoffliste. "Nicht erfasst" heißt nicht '
+                '"unbedenklich".',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               const SizedBox(height: 12),
