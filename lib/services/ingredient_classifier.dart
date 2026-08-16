@@ -1,5 +1,6 @@
 import '../data/emerging_concerns.dart';
 import '../data/ingredient_reference.dart';
+import '../data/keyword_flags.dart';
 import '../models/ingredient_rating.dart';
 
 class IngredientClassification {
@@ -8,6 +9,8 @@ class IngredientClassification {
     this.cmr,
     this.isConditional = false,
     this.emergingConcern,
+    this.isPalmOilDerived = false,
+    this.isMineralOilDerived = false,
   });
 
   final IngredientRating rating;
@@ -27,13 +30,21 @@ class IngredientClassification {
   /// can still have one.
   final EmergingConcern? emergingConcern;
 
-  /// Worth surfacing in a product-level summary: anything EU-flagged
-  /// (banned/restricted/allergen/microplastic) or with a documented
-  /// emerging concern. Plain "permitted, nothing notable" ingredients are
-  /// excluded so the summary doesn't drown in routine UV filters etc.
-  bool get isNotable =>
-      (rating != IngredientRating.unknown &&
-          rating != IngredientRating.permitted) ||
+  final bool isPalmOilDerived;
+  final bool isMineralOilDerived;
+
+  /// Worth surfacing in the health-focused summary at the top of the
+  /// product screen: banned substances, restricted/microplastic entries
+  /// with a documented CMR reason, or anything with a researched emerging
+  /// concern — even if the concern is a processing/degradation byproduct
+  /// rather than the listed substance itself (e.g. Octocrylene). Pure
+  /// fragrance allergens are deliberately excluded: that's a declaration
+  /// requirement for people with contact allergies, not a "makes you
+  /// sick" signal, so it doesn't belong in a health-risk summary.
+  bool get isHealthFlag =>
+      rating == IngredientRating.banned ||
+      rating == IngredientRating.microplastic ||
+      (rating == IngredientRating.restricted && cmr != null) ||
       emergingConcern != null;
 
   String get tooltip {
@@ -52,6 +63,15 @@ class IngredientClassification {
     if (emergingConcern != null) {
       buffer.write(' — ${emergingConcern!.description}');
     }
+    if (isPalmOilDerived) {
+      buffer.write(
+        ' — Name enthält "Palm": möglicherweise palmölbasiert (aus der '
+        'INCI-Bezeichnung allein nicht sicher bestimmbar)',
+      );
+    }
+    if (isMineralOilDerived) {
+      buffer.write(' — mineralölbasierter Inhaltsstoff (Erdöl-Derivat)');
+    }
     return buffer.toString();
   }
 }
@@ -61,46 +81,37 @@ class IngredientClassifier {
 
   IngredientClassification classify(String ingredientName) {
     final normalized = ingredientName.trim().toLowerCase();
-    final concern = emergingConcerns[normalized];
+
+    IngredientRating rating;
+    String? cmr;
+    var isConditional = false;
 
     if (IngredientReferenceData.banned.contains(normalized)) {
-      return IngredientClassification(
-        rating: IngredientRating.banned,
-        cmr: IngredientReferenceData.bannedCmr[normalized],
-        isConditional: IngredientReferenceData.bannedConditional.contains(
-          normalized,
-        ),
-        emergingConcern: concern,
+      rating = IngredientRating.banned;
+      cmr = IngredientReferenceData.bannedCmr[normalized];
+      isConditional = IngredientReferenceData.bannedConditional.contains(
+        normalized,
       );
+    } else if (euFragranceAllergens.contains(normalized)) {
+      rating = IngredientRating.allergen;
+    } else if (IngredientReferenceData.restricted.contains(normalized)) {
+      rating = IngredientRating.restricted;
+      cmr = IngredientReferenceData.restrictedCmr[normalized];
+    } else if (IngredientReferenceData.permitted.contains(normalized)) {
+      rating = IngredientRating.permitted;
+    } else if (IngredientReferenceData.microplastics.contains(normalized)) {
+      rating = IngredientRating.microplastic;
+    } else {
+      rating = IngredientRating.unknown;
     }
-    if (euFragranceAllergens.contains(normalized)) {
-      return IngredientClassification(
-        rating: IngredientRating.allergen,
-        emergingConcern: concern,
-      );
-    }
-    if (IngredientReferenceData.restricted.contains(normalized)) {
-      return IngredientClassification(
-        rating: IngredientRating.restricted,
-        cmr: IngredientReferenceData.restrictedCmr[normalized],
-        emergingConcern: concern,
-      );
-    }
-    if (IngredientReferenceData.permitted.contains(normalized)) {
-      return IngredientClassification(
-        rating: IngredientRating.permitted,
-        emergingConcern: concern,
-      );
-    }
-    if (IngredientReferenceData.microplastics.contains(normalized)) {
-      return IngredientClassification(
-        rating: IngredientRating.microplastic,
-        emergingConcern: concern,
-      );
-    }
+
     return IngredientClassification(
-      rating: IngredientRating.unknown,
-      emergingConcern: concern,
+      rating: rating,
+      cmr: cmr,
+      isConditional: isConditional,
+      emergingConcern: emergingConcerns[normalized],
+      isPalmOilDerived: palmOilKeywords.any(normalized.contains),
+      isMineralOilDerived: mineralOilKeywords.any(normalized.contains),
     );
   }
 }

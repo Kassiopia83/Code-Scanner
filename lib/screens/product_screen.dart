@@ -61,8 +61,14 @@ class _ProductScreenState extends State<ProductScreen> {
             for (final ingredient in product.ingredients)
               (name: ingredient, classification: _classifier.classify(ingredient)),
           ];
-          final notable = classifications
-              .where((e) => e.classification.isNotable)
+          final healthFlags = classifications
+              .where((e) => e.classification.isHealthFlag)
+              .toList();
+          final palmOil = classifications
+              .where((e) => e.classification.isPalmOilDerived)
+              .toList();
+          final mineralOil = classifications
+              .where((e) => e.classification.isMineralOilDerived)
               .toList();
 
           return ListView(
@@ -81,12 +87,11 @@ class _ProductScreenState extends State<ProductScreen> {
               ],
               if (product.ingredients.isNotEmpty) ...[
                 const SizedBox(height: 16),
-                Text(
-                  'Auffälligkeiten',
-                  style: Theme.of(context).textTheme.titleMedium,
+                _HealthSummaryCard(
+                  healthFlags: healthFlags,
+                  palmOil: palmOil,
+                  mineralOil: mineralOil,
                 ),
-                const SizedBox(height: 8),
-                _SummaryText(entries: notable),
               ],
               const SizedBox(height: 16),
               Text(
@@ -97,12 +102,11 @@ class _ProductScreenState extends State<ProductScreen> {
               Text(
                 'Regulatorische Einstufung nach EU-Kosmetikverordnung '
                 '(COSING, Anhänge II-VI), keine toxikologische Bewertung. '
-                'Blau = häufig als Mikroplastik eingesetzt, nach einer '
-                'NGO-Liste (Beat the Microbead), nicht nach einer '
-                'offiziellen EU-Stoffliste. Einzelne Hinweise zu '
-                'wissenschaftlich/medial diskutierten, aber (noch) nicht '
-                'EU-regulierten Risiken sind separat gekennzeichnet. '
-                '"Nicht erfasst" heißt nicht "unbedenklich".',
+                'Rot = verboten, Gelb = eingeschränkt/Duftstoff-Allergen, '
+                'Orange = zugelassen mit Auflagen, Blau = häufig als '
+                'Mikroplastik eingesetzt (NGO-Liste, keine offizielle '
+                'EU-Stoffliste). Details zu jedem Stoff per Fingerdruck '
+                'auf den Chip. "Nicht erfasst" heißt nicht "unbedenklich".',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               const SizedBox(height: 12),
@@ -129,28 +133,96 @@ class _ProductScreenState extends State<ProductScreen> {
   }
 }
 
-class _SummaryText extends StatelessWidget {
-  const _SummaryText({required this.entries});
+typedef _ClassifiedIngredient =
+    ({String name, IngredientClassification classification});
 
-  final List<({String name, IngredientClassification classification})>
-  entries;
+class _HealthSummaryCard extends StatelessWidget {
+  const _HealthSummaryCard({
+    required this.healthFlags,
+    required this.palmOil,
+    required this.mineralOil,
+  });
+
+  final List<_ClassifiedIngredient> healthFlags;
+  final List<_ClassifiedIngredient> palmOil;
+  final List<_ClassifiedIngredient> mineralOil;
 
   @override
   Widget build(BuildContext context) {
-    if (entries.isEmpty) {
-      return const Text(
-        'Keine auffälligen Inhaltsstoffe gefunden (kein Verbot, keine '
-        'Einschränkung, kein Allergen, kein Mikroplastik, keine '
-        'dokumentierten aufkommenden Risiken).',
-      );
-    }
+    final theme = Theme.of(context);
+    final hasAnything =
+        healthFlags.isNotEmpty || palmOil.isNotEmpty || mineralOil.isNotEmpty;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: (hasAnything ? Colors.red : Colors.green).withValues(
+          alpha: 0.08,
+        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: (hasAnything ? Colors.red : Colors.green).withValues(
+            alpha: 0.4,
+          ),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Gesundheitsrelevante Hinweise',
+            style: theme.textTheme.titleMedium,
+          ),
+          const SizedBox(height: 8),
+          if (!hasAnything)
+            const Text(
+              'Keine krebserregenden/potenziell krebserregenden oder '
+              'sonst krankmachenden Stoffe, kein Palmöl, kein Mineralöl '
+              'anhand der Zutatenliste erkannt.',
+            ),
+          if (healthFlags.isNotEmpty)
+            _SummarySection(
+              title: 'Krebserregend / potenziell krankmachend',
+              entries: healthFlags,
+            ),
+          if (palmOil.isNotEmpty) ...[
+            if (healthFlags.isNotEmpty) const SizedBox(height: 12),
+            _SummarySection(title: 'Palmöl enthalten', entries: palmOil),
+          ],
+          if (mineralOil.isNotEmpty) ...[
+            if (healthFlags.isNotEmpty || palmOil.isNotEmpty)
+              const SizedBox(height: 12),
+            _SummarySection(title: 'Mineralöl enthalten', entries: mineralOil),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _SummarySection extends StatelessWidget {
+  const _SummarySection({required this.title, required this.entries});
+
+  final String title;
+  final List<_ClassifiedIngredient> entries;
+
+  @override
+  Widget build(BuildContext context) {
     final bodyStyle = Theme.of(context).textTheme.bodyMedium;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Text(
+          title,
+          style: Theme.of(
+            context,
+          ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 4),
         for (final entry in entries)
           Padding(
-            padding: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.only(bottom: 6),
             child: RichText(
               text: TextSpan(
                 style: bodyStyle,
