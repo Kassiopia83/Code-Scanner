@@ -43,6 +43,11 @@ class IngredientReferenceData {
 
   static Set<String> microplastics = {};
 
+  /// Permitted (Annex IV-VI) name -> readable usage condition (e.g. "max.
+  /// 7,34 % (Face products with the exception of propellent spray
+  /// products)"), for names that have one.
+  static Map<String, String> permittedConditions = {};
+
   static Future<void> load() async {
     final jsonString = await rootBundle.loadString(
       'assets/data/ingredient_reference.json',
@@ -62,6 +67,9 @@ class IngredientReferenceData {
     );
     microplastics = Set<String>.from(
       data['microplastics'] as List? ?? const [],
+    );
+    permittedConditions = Map<String, String>.from(
+      data['permittedConditions'] as Map? ?? const {},
     );
   }
 }

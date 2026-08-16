@@ -17,6 +17,7 @@ class _ProductScreenState extends State<ProductScreen> {
   final _service = OpenBeautyFactsService();
   final _classifier = const IngredientClassifier();
   late final Future<Product> _future;
+  int? _expandedIndex;
 
   @override
   void initState() {
@@ -24,54 +25,71 @@ class _ProductScreenState extends State<ProductScreen> {
     _future = _service.fetchProduct(widget.barcode);
   }
 
+  void _toggleExpanded(int index) {
+    setState(() {
+      _expandedIndex = _expandedIndex == index ? null : index;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('Barcode ${widget.barcode}')),
-      body: FutureBuilder<Product>(
-        future: _future,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
-          }
+    final appBar = AppBar(title: Text('Barcode ${widget.barcode}'));
 
-          if (snapshot.hasError) {
-            final error = snapshot.error;
-            final String message;
-            if (error is ProductNotFoundException) {
-              message =
-                  'Produkt nicht in der Open-Beauty-Facts-Datenbank gefunden.';
-            } else if (error is ProductFetchTimeoutException) {
-              message =
-                  'Zeitüberschreitung beim Laden. Prüfe deine Internetverbindung und versuche es erneut.';
-            } else {
-              message =
-                  'Fehler beim Laden der Produktdaten. Prüfe deine Internetverbindung.';
-            }
-            return Center(
+    return FutureBuilder<Product>(
+      future: _future,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return Scaffold(
+            appBar: appBar,
+            body: const Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        if (snapshot.hasError) {
+          final error = snapshot.error;
+          final String message;
+          if (error is ProductNotFoundException) {
+            message =
+                'Produkt nicht in der Open-Beauty-Facts-Datenbank gefunden.';
+          } else if (error is ProductFetchTimeoutException) {
+            message =
+                'Zeitüberschreitung beim Laden. Prüfe deine Internetverbindung und versuche es erneut.';
+          } else {
+            message =
+                'Fehler beim Laden der Produktdaten. Prüfe deine Internetverbindung.';
+          }
+          return Scaffold(
+            appBar: appBar,
+            body: Center(
               child: Padding(
                 padding: const EdgeInsets.all(24),
                 child: Text(message, textAlign: TextAlign.center),
               ),
-            );
-          }
+            ),
+          );
+        }
 
-          final product = snapshot.data!;
-          final classifications = [
-            for (final ingredient in product.ingredients)
-              (name: ingredient, classification: _classifier.classify(ingredient)),
-          ];
-          final healthFlags = classifications
-              .where((e) => e.classification.isHealthFlag)
-              .toList();
-          final palmOil = classifications
-              .where((e) => e.classification.isPalmOilDerived)
-              .toList();
-          final mineralOil = classifications
-              .where((e) => e.classification.isMineralOilDerived)
-              .toList();
+        final product = snapshot.data!;
+        final classifications = [
+          for (final ingredient in product.ingredients)
+            (
+              name: ingredient,
+              classification: _classifier.classify(ingredient),
+            ),
+        ];
+        final healthFlags = classifications
+            .where((e) => e.classification.isHealthFlag)
+            .toList();
+        final palmOil = classifications
+            .where((e) => e.classification.isPalmOilDerived)
+            .toList();
+        final mineralOil = classifications
+            .where((e) => e.classification.isMineralOilDerived)
+            .toList();
 
-          return ListView(
+        return Scaffold(
+          appBar: appBar,
+          body: ListView(
             padding: const EdgeInsets.all(16),
             children: [
               Text(
@@ -116,19 +134,31 @@ class _ProductScreenState extends State<ProductScreen> {
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
-                  children: classifications
-                      .map(
-                        (e) => _IngredientChip(
-                          name: e.name,
-                          classification: e.classification,
-                        ),
-                      )
-                      .toList(),
+                  children: [
+                    for (final (index, e) in classifications.indexed)
+                      _IngredientChip(
+                        name: e.name,
+                        classification: e.classification,
+                        selected: _expandedIndex == index,
+                        onTap: () => _toggleExpanded(index),
+                      ),
+                  ],
                 ),
+              // Extra bottom padding so the floating detail sheet never
+              // covers the last row of chips.
+              if (_expandedIndex != null) const SizedBox(height: 96),
             ],
-          );
-        },
-      ),
+          ),
+          bottomSheet: _expandedIndex == null
+              ? null
+              : SafeArea(
+                  child: _IngredientDetailCard(
+                    entry: classifications[_expandedIndex!],
+                    onClose: () => setState(() => _expandedIndex = null),
+                  ),
+                ),
+        );
+      },
     );
   }
 }
@@ -241,23 +271,78 @@ class _SummarySection extends StatelessWidget {
   }
 }
 
+class _IngredientDetailCard extends StatelessWidget {
+  const _IngredientDetailCard({required this.entry, required this.onClose});
+
+  final _ClassifiedIngredient entry;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = entry.classification.rating.color;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: RichText(
+              text: TextSpan(
+                style: Theme.of(context).textTheme.bodyMedium,
+                children: [
+                  TextSpan(
+                    text: '${entry.name}: ',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  TextSpan(text: entry.classification.tooltip),
+                ],
+              ),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.close),
+            iconSize: 18,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            onPressed: onClose,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _IngredientChip extends StatelessWidget {
-  const _IngredientChip({required this.name, required this.classification});
+  const _IngredientChip({
+    required this.name,
+    required this.classification,
+    required this.selected,
+    required this.onTap,
+  });
 
   final String name;
   final IngredientClassification classification;
+  final bool selected;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final color = classification.rating.color;
-    return Tooltip(
-      message: classification.tooltip,
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.12),
+          color: color.withValues(alpha: selected ? 0.28 : 0.12),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color),
+          border: Border.all(color: color, width: selected ? 2 : 1),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,

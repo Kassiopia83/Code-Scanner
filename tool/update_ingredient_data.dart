@@ -29,6 +29,7 @@ Future<void> main() async {
   final bannedCmr = <String, String>{};
   final restrictedCmr = <String, String>{};
   final bannedConditional = <String>{};
+  final permittedConditions = <String, String>{};
   String? sourceLastUpdate;
 
   for (final annex in _annexes) {
@@ -54,6 +55,21 @@ Future<void> main() async {
     }
 
     final cmrCol = indexOf('CMR');
+    final maxConcentrationCol = indexOf(
+      'Maximum concentration in ready for use preparation',
+    );
+    final productTypeCol = indexOf('Product Type, body parts');
+
+    void recordCondition(List<String> names, List<dynamic> row) {
+      final condition = _cleanCondition(
+        maxConcentrationCol == null ? '' : row[maxConcentrationCol].toString(),
+        productTypeCol == null ? '' : row[productTypeCol].toString(),
+      );
+      if (condition == null) return;
+      for (final name in names) {
+        permittedConditions[name] = condition;
+      }
+    }
 
     switch (annex) {
       case 'II':
@@ -104,19 +120,20 @@ Future<void> main() async {
         );
         if (col == null) break;
         for (final row in dataRows) {
-          permitted.addAll(
-            _splitNames(
-              row[col].toString(),
-              '/',
-            ).where((name) => !RegExp(r'^ci\s*\d+$').hasMatch(name)),
-          );
+          final names = _splitNames(row[col].toString(), '/')
+              .where((name) => !RegExp(r'^ci\s*\d+$').hasMatch(name))
+              .toList();
+          permitted.addAll(names);
+          recordCondition(names, row);
         }
       case 'V':
       case 'VI':
         final col = indexOf('Name of Common Ingredients Glossary');
         if (col == null) break;
         for (final row in dataRows) {
-          permitted.addAll(_splitNames(row[col].toString(), '/'));
+          final names = _splitNames(row[col].toString(), '/').toList();
+          permitted.addAll(names);
+          recordCondition(names, row);
         }
       default:
         break;
@@ -132,6 +149,7 @@ Future<void> main() async {
     'bannedCmr': bannedCmr,
     'restrictedCmr': restrictedCmr,
     'bannedConditional': bannedConditional.toList()..sort(),
+    'permittedConditions': permittedConditions,
   };
 
   final outFile = File('assets/data/ingredient_reference.json');
@@ -144,7 +162,8 @@ Future<void> main() async {
     'Wrote ${banned.length} banned (${bannedCmr.length} with CMR info, '
     '${bannedConditional.length} conditional), ${restricted.length} '
     'restricted (${restrictedCmr.length} with CMR info), '
-    '${permitted.length} permitted ingredient names to ${outFile.path}',
+    '${permitted.length} permitted (${permittedConditions.length} with '
+    'condition info) ingredient names to ${outFile.path}',
   );
 }
 
@@ -167,6 +186,36 @@ Iterable<String> _splitNames(String raw, String separator) sync* {
 String? _extractLastUpdate(String csvBody) {
   final match = RegExp(r'Last update:\s*([\d/]+)').firstMatch(csvBody);
   return match?.group(1);
+}
+
+final _startsNumeric = RegExp(r'^\d');
+
+/// Combines the "Maximum concentration" and "Product Type, body parts"
+/// columns into one readable condition string (e.g. "max. 7,34 % (Face
+/// products with the exception of propellent spray products)"), or null
+/// if both are empty. Some "concentration" cells are actually free-text
+/// usage notes (e.g. "Not to be used in products applied on mucous
+/// membranes") rather than a number — only prefix "max." when the value
+/// actually starts with a digit. Cells can also contain embedded
+/// newlines (multi-line footnotes within one CSV field), which are
+/// collapsed to spaces.
+String? _cleanCondition(String rawConcentration, String rawProductType) {
+  final concentration = rawConcentration.trim().replaceAll('\n', ' ').trim();
+  final productType = rawProductType.trim().replaceAll('\n', ' ').trim();
+  final hasConcentration = concentration.isNotEmpty && concentration != '-';
+  final hasProductType = productType.isNotEmpty && productType != '-';
+
+  final concentrationText = hasConcentration
+      ? (_startsNumeric.hasMatch(concentration)
+            ? 'max. $concentration'
+            : concentration)
+      : null;
+
+  if (concentrationText == null && !hasProductType) return null;
+  if (concentrationText != null && hasProductType) {
+    return '$concentrationText ($productType)';
+  }
+  return concentrationText ?? productType;
 }
 
 /// Turns the raw CMR column (e.g. "Carcinogenic Cat. 1B(),Mutagenic Cat.

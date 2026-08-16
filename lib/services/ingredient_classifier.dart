@@ -11,6 +11,7 @@ class IngredientClassification {
     this.emergingConcern,
     this.isPalmOilDerived = false,
     this.isMineralOilDerived = false,
+    this.condition,
   });
 
   final IngredientRating rating;
@@ -18,6 +19,11 @@ class IngredientClassification {
   /// Readable CMR classification (e.g. "krebserregend Kat. 1B"), if COSING
   /// lists one for this ingredient.
   final String? cmr;
+
+  /// Readable usage condition for permitted (Annex IV-VI) ingredients,
+  /// e.g. "max. 7,34 % (Face products with the exception of propellent
+  /// spray products)" for Homosalate.
+  final String? condition;
 
   /// True if the EU ban has a documented exception (e.g. Petrolatum is
   /// banned "except if the full refining history is known and it can be
@@ -50,6 +56,7 @@ class IngredientClassification {
   String get tooltip {
     final buffer = StringBuffer(rating.label);
     if (cmr != null) buffer.write(' ($cmr)');
+    if (condition != null) buffer.write(' ($condition)');
     if (isConditional) {
       buffer.write(' — mit Ausnahmeregelung, siehe COSING-Originaltext');
     }
@@ -84,6 +91,7 @@ class IngredientClassifier {
 
     IngredientRating rating;
     String? cmr;
+    String? condition;
     var isConditional = false;
 
     if (IngredientReferenceData.banned.contains(normalized)) {
@@ -99,6 +107,7 @@ class IngredientClassifier {
       cmr = IngredientReferenceData.restrictedCmr[normalized];
     } else if (IngredientReferenceData.permitted.contains(normalized)) {
       rating = IngredientRating.permitted;
+      condition = IngredientReferenceData.permittedConditions[normalized];
     } else if (IngredientReferenceData.microplastics.contains(normalized)) {
       rating = IngredientRating.microplastic;
     } else {
@@ -108,6 +117,7 @@ class IngredientClassifier {
     return IngredientClassification(
       rating: rating,
       cmr: cmr,
+      condition: condition,
       isConditional: isConditional,
       emergingConcern: emergingConcerns[normalized],
       isPalmOilDerived: palmOilKeywords.any(normalized.contains),
