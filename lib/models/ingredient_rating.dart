@@ -4,6 +4,7 @@ enum IngredientRating {
   banned,
   restricted,
   allergen,
+  permitted,
   unknown;
 
   Color get color {
@@ -13,6 +14,8 @@ enum IngredientRating {
       case IngredientRating.restricted:
       case IngredientRating.allergen:
         return Colors.amber.shade800;
+      case IngredientRating.permitted:
+        return Colors.orange;
       case IngredientRating.unknown:
         return Colors.grey;
     }
@@ -26,6 +29,8 @@ enum IngredientRating {
         return 'Nur eingeschränkt zulässig (EU)';
       case IngredientRating.allergen:
         return 'Deklarationspflichtiges Duftstoff-Allergen';
+      case IngredientRating.permitted:
+        return 'Zugelassener Farbstoff/Konservierungsstoff/UV-Filter mit Auflagen (EU)';
       case IngredientRating.unknown:
         return 'Nicht in der Referenzliste erfasst';
     }

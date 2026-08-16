@@ -22,7 +22,10 @@ class OpenBeautyFactsService {
           onTimeout: () => throw ProductFetchTimeoutException(),
         );
 
-    if (response.statusCode != 200) {
+    // Open Beauty Facts answers "not found" with HTTP 404 and a
+    // {"status":0} body, not with HTTP 200 — so 404 is a valid response to
+    // parse, not necessarily an error.
+    if (response.statusCode != 200 && response.statusCode != 404) {
       throw Exception(
         'Fehler beim Abrufen der Produktdaten (${response.statusCode})',
       );

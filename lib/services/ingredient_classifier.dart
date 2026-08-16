@@ -7,12 +7,17 @@ class IngredientClassifier {
   IngredientRating classify(String ingredientName) {
     final normalized = ingredientName.trim().toLowerCase();
 
-    if (annexIiBanned.contains(normalized)) return IngredientRating.banned;
-    if (annexIiiRestricted.contains(normalized)) {
-      return IngredientRating.restricted;
+    if (IngredientReferenceData.banned.contains(normalized)) {
+      return IngredientRating.banned;
     }
     if (euFragranceAllergens.contains(normalized)) {
       return IngredientRating.allergen;
+    }
+    if (IngredientReferenceData.restricted.contains(normalized)) {
+      return IngredientRating.restricted;
+    }
+    if (IngredientReferenceData.permitted.contains(normalized)) {
+      return IngredientRating.permitted;
     }
     return IngredientRating.unknown;
   }

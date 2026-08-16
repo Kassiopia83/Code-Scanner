@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 
+import 'data/ingredient_reference.dart';
 import 'screens/scan_screen.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await IngredientReferenceData.load();
   runApp(const MyApp());
 }
 
