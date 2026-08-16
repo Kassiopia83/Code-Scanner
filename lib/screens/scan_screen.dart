@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
+import 'product_screen.dart';
+
 class ScanScreen extends StatefulWidget {
   const ScanScreen({super.key});
 
@@ -10,7 +12,7 @@ class ScanScreen extends StatefulWidget {
 
 class _ScanScreenState extends State<ScanScreen> {
   final MobileScannerController _controller = MobileScannerController();
-  String? _lastCode;
+  bool _isNavigating = false;
 
   @override
   void dispose() {
@@ -18,36 +20,30 @@ class _ScanScreenState extends State<ScanScreen> {
     super.dispose();
   }
 
-  void _onDetect(BarcodeCapture capture) {
-    if (capture.barcodes.isEmpty) return;
+  Future<void> _onDetect(BarcodeCapture capture) async {
+    if (_isNavigating || capture.barcodes.isEmpty) return;
     final code = capture.barcodes.first.rawValue;
-    if (code == null || code == _lastCode) return;
-    setState(() => _lastCode = code);
+    if (code == null) return;
+
+    _isNavigating = true;
+    await _controller.stop();
+    if (!mounted) return;
+
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => ProductScreen(barcode: code)));
+
+    _isNavigating = false;
+    if (mounted) {
+      await _controller.start();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Barcode scannen')),
-      body: Stack(
-        children: [
-          MobileScanner(controller: _controller, onDetect: _onDetect),
-          if (_lastCode != null)
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: Container(
-                width: double.infinity,
-                color: Colors.black87,
-                padding: const EdgeInsets.all(16),
-                child: Text(
-                  'Erkannt: $_lastCode',
-                  style: const TextStyle(color: Colors.white, fontSize: 18),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ),
-        ],
-      ),
+      body: MobileScanner(controller: _controller, onDetect: _onDetect),
     );
   }
 }
