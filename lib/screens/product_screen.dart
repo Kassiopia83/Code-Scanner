@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../models/ingredient_rating.dart';
 import '../models/product.dart';
 import '../services/ingredient_classifier.dart';
 import '../services/open_beauty_facts_service.dart';
@@ -79,10 +78,10 @@ class _ProductScreenState extends State<ProductScreen> {
               ),
               const SizedBox(height: 4),
               Text(
-                'Regulatorische Einstufung nach EU-Kosmetikverordnung, keine '
-                'toxikologische Bewertung. Basiert auf einer kleinen, nicht '
-                'vollständigen Startliste — "nicht erfasst" heißt nicht '
-                '"unbedenklich".',
+                'Regulatorische Einstufung nach EU-Kosmetikverordnung '
+                '(COSING, Anhänge II-VI), keine toxikologische Bewertung. '
+                'Deckt nur Verbote/Einschränkungen ab — "nicht erfasst" '
+                'heißt nicht "unbedenklich".',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               const SizedBox(height: 12),
@@ -96,7 +95,7 @@ class _ProductScreenState extends State<ProductScreen> {
                       .map(
                         (ingredient) => _IngredientChip(
                           name: ingredient,
-                          rating: _classifier.classify(ingredient),
+                          classification: _classifier.classify(ingredient),
                         ),
                       )
                       .toList(),
@@ -110,21 +109,22 @@ class _ProductScreenState extends State<ProductScreen> {
 }
 
 class _IngredientChip extends StatelessWidget {
-  const _IngredientChip({required this.name, required this.rating});
+  const _IngredientChip({required this.name, required this.classification});
 
   final String name;
-  final IngredientRating rating;
+  final IngredientClassification classification;
 
   @override
   Widget build(BuildContext context) {
+    final color = classification.rating.color;
     return Tooltip(
-      message: rating.label,
+      message: classification.tooltip,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: rating.color.withValues(alpha: 0.12),
+          color: color.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: rating.color),
+          border: Border.all(color: color),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -132,10 +132,7 @@ class _IngredientChip extends StatelessWidget {
             Container(
               width: 8,
               height: 8,
-              decoration: BoxDecoration(
-                color: rating.color,
-                shape: BoxShape.circle,
-              ),
+              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
             ),
             const SizedBox(width: 6),
             Text(name),

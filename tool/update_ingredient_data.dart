@@ -26,6 +26,8 @@ Future<void> main() async {
   final banned = <String>{};
   final restricted = <String>{};
   final permitted = <String>{};
+  final bannedCmr = <String, String>{};
+  final restrictedCmr = <String, String>{};
   String? sourceLastUpdate;
 
   for (final annex in _annexes) {
@@ -50,18 +52,38 @@ Future<void> main() async {
       return idx == -1 ? null : idx;
     }
 
+    final cmrCol = indexOf('CMR');
+
     switch (annex) {
       case 'II':
         final col = indexOf('Identified INGREDIENTS or substances e.g.');
         if (col == null) break;
         for (final row in dataRows) {
-          banned.addAll(_splitNames(row[col].toString(), ','));
+          final names = _splitNames(row[col].toString(), ',').toList();
+          banned.addAll(names);
+          final cmr = cmrCol == null
+              ? null
+              : _cleanCmr(row[cmrCol].toString());
+          if (cmr != null) {
+            for (final name in names) {
+              bannedCmr[name] = cmr;
+            }
+          }
         }
       case 'III':
         final col = indexOf('Name of Common Ingredients Glossary');
         if (col == null) break;
         for (final row in dataRows) {
-          restricted.addAll(_splitNames(row[col].toString(), '/'));
+          final names = _splitNames(row[col].toString(), '/').toList();
+          restricted.addAll(names);
+          final cmr = cmrCol == null
+              ? null
+              : _cleanCmr(row[cmrCol].toString());
+          if (cmr != null) {
+            for (final name in names) {
+              restrictedCmr[name] = cmr;
+            }
+          }
         }
       case 'IV':
         final col = indexOf(
@@ -94,6 +116,8 @@ Future<void> main() async {
     'banned': banned.toList()..sort(),
     'restricted': restricted.toList()..sort(),
     'permitted': permitted.toList()..sort(),
+    'bannedCmr': bannedCmr,
+    'restrictedCmr': restrictedCmr,
   };
 
   final outFile = File('assets/data/ingredient_reference.json');
@@ -103,8 +127,10 @@ Future<void> main() async {
   );
 
   stdout.writeln(
-    'Wrote ${banned.length} banned, ${restricted.length} restricted, '
-    '${permitted.length} permitted ingredient names to ${outFile.path}',
+    'Wrote ${banned.length} banned (${bannedCmr.length} with CMR info), '
+    '${restricted.length} restricted (${restrictedCmr.length} with CMR '
+    'info), ${permitted.length} permitted ingredient names to '
+    '${outFile.path}',
   );
 }
 
@@ -125,4 +151,20 @@ Iterable<String> _splitNames(String raw, String separator) sync* {
 String? _extractLastUpdate(String csvBody) {
   final match = RegExp(r'Last update:\s*([\d/]+)').firstMatch(csvBody);
   return match?.group(1);
+}
+
+/// Turns the raw CMR column (e.g. "Carcinogenic Cat. 1B(),Mutagenic Cat.
+/// 2()") into a readable German label, or null if the column was empty.
+String? _cleanCmr(String raw) {
+  final trimmed = raw.trim();
+  if (trimmed.isEmpty || trimmed == '-') return null;
+  final cleaned = trimmed
+      .replaceAll('()', '')
+      .replaceAll('Carcinogenic', 'krebserregend')
+      .replaceAll('Mutagenic', 'mutagen')
+      .replaceAll('Reprotoxic', 'fortpflanzungsgefährdend')
+      .replaceAll('Cat.', 'Kat.')
+      .replaceAll(',', ', ')
+      .trim();
+  return cleaned.isEmpty ? null : cleaned;
 }

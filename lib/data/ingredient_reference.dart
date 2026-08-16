@@ -19,6 +19,12 @@ class IngredientReferenceData {
   static Set<String> restricted = {};
   static Set<String> permitted = {};
 
+  /// Ingredient name -> readable CMR classification (e.g. "krebserregend
+  /// Kat. 1B"), for names that have one. Not every banned/restricted name
+  /// has an entry.
+  static Map<String, String> bannedCmr = {};
+  static Map<String, String> restrictedCmr = {};
+
   static Future<void> load() async {
     final jsonString = await rootBundle.loadString(
       'assets/data/ingredient_reference.json',
@@ -27,6 +33,12 @@ class IngredientReferenceData {
     banned = Set<String>.from(data['banned'] as List);
     restricted = Set<String>.from(data['restricted'] as List);
     permitted = Set<String>.from(data['permitted'] as List);
+    bannedCmr = Map<String, String>.from(
+      data['bannedCmr'] as Map? ?? const {},
+    );
+    restrictedCmr = Map<String, String>.from(
+      data['restrictedCmr'] as Map? ?? const {},
+    );
   }
 }
 
