@@ -13,9 +13,9 @@ enum IngredientRating {
         return Colors.red;
       case IngredientRating.restricted:
       case IngredientRating.allergen:
-        return Colors.amber.shade800;
+        return Colors.amber;
       case IngredientRating.permitted:
-        return Colors.orange;
+        return Colors.orange.shade800;
       case IngredientRating.unknown:
         return Colors.grey;
     }
