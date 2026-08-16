@@ -123,8 +123,10 @@ class _ProductScreenState extends State<ProductScreen> {
                 'Rot = verboten, Gelb = eingeschränkt/Duftstoff-Allergen, '
                 'Orange = zugelassen mit Auflagen, Blau = häufig als '
                 'Mikroplastik eingesetzt (NGO-Liste, keine offizielle '
-                'EU-Stoffliste). Details zu jedem Stoff per Fingerdruck '
-                'auf den Chip. "Nicht erfasst" heißt nicht "unbedenklich".',
+                'EU-Stoffliste), Grün = verbreiteter Stoff ohne bekannte '
+                'Einschränkung (kleine, handkuratierte Liste). Details zu '
+                'jedem Stoff per Fingerdruck auf den Chip. "Nicht erfasst" '
+                'heißt nicht "unbedenklich".',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               const SizedBox(height: 12),

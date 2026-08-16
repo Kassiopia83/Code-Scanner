@@ -1,6 +1,7 @@
 import '../data/emerging_concerns.dart';
 import '../data/ingredient_reference.dart';
 import '../data/keyword_flags.dart';
+import '../data/known_safe_ingredients.dart';
 import '../models/ingredient_rating.dart';
 
 class IngredientClassification {
@@ -70,6 +71,12 @@ class IngredientClassification {
     if (emergingConcern != null) {
       buffer.write(' — ${emergingConcern!.description}');
     }
+    if (rating == IngredientRating.safe) {
+      buffer.write(
+        ' — Teil einer kleinen, handkuratierten Liste verbreiteter '
+        'Inhaltsstoffe, keine vollständige COSING-Positivliste',
+      );
+    }
     if (isPalmOilDerived) {
       buffer.write(
         ' — Name enthält "Palm": möglicherweise palmölbasiert (aus der '
@@ -110,6 +117,8 @@ class IngredientClassifier {
       condition = IngredientReferenceData.permittedConditions[normalized];
     } else if (IngredientReferenceData.microplastics.contains(normalized)) {
       rating = IngredientRating.microplastic;
+    } else if (knownSafeIngredients.contains(normalized)) {
+      rating = IngredientRating.safe;
     } else {
       rating = IngredientRating.unknown;
     }

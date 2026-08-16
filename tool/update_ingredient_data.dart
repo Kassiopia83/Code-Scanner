@@ -140,6 +140,25 @@ Future<void> main() async {
     }
   }
 
+  final outFile = File('assets/data/ingredient_reference.json');
+
+  // This tool only produces the COSING-derived keys. A few keys are merged
+  // in separately from non-COSING sources with their own scripts
+  // (microplastics: tool/parse_microplastics_list.dart; knownSafe: hand-
+  // curated) — preserve whatever is already on disk for those instead of
+  // wiping them on every re-run. This bit was missed once already (see
+  // project memory) and silently broke the microplastics category for a
+  // whole commit.
+  const preservedKeys = ['microplastics', 'microplasticsSource', 'knownSafe', 'knownSafeSource'];
+  final preserved = <String, dynamic>{};
+  if (outFile.existsSync()) {
+    final existing =
+        jsonDecode(await outFile.readAsString()) as Map<String, dynamic>;
+    for (final key in preservedKeys) {
+      if (existing.containsKey(key)) preserved[key] = existing[key];
+    }
+  }
+
   final output = {
     'generatedAt': DateTime.now().toUtc().toIso8601String(),
     'sourceLastUpdate': sourceLastUpdate,
@@ -150,13 +169,26 @@ Future<void> main() async {
     'restrictedCmr': restrictedCmr,
     'bannedConditional': bannedConditional.toList()..sort(),
     'permittedConditions': permittedConditions,
+    ...preserved,
   };
 
-  final outFile = File('assets/data/ingredient_reference.json');
   await outFile.create(recursive: true);
   await outFile.writeAsString(
     const JsonEncoder.withIndent('  ').convert(output),
   );
+
+  if (preserved.containsKey('microplastics')) {
+    stdout.writeln(
+      'Preserved ${(preserved['microplastics'] as List).length} '
+      'microplastics names from the existing file.',
+    );
+  } else {
+    stdout.writeln(
+      'WARNING: no existing "microplastics" key found to preserve — run '
+      'tool/parse_microplastics_list.dart and merge it in if this is '
+      'unexpected.',
+    );
+  }
 
   stdout.writeln(
     'Wrote ${banned.length} banned (${bannedCmr.length} with CMR info, '
