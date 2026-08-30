@@ -27,4 +27,19 @@ Persönliches Projekt, unabhängig vom Leistungsradar-Repo.
 
 ## Status
 
-Projektgerüst angelegt, noch kein Code. Nächste Schritte siehe [docs/setup-installation.md](docs/setup-installation.md).
+MVP-Kernflow funktioniert: Barcode scannen → Produkt per Open Beauty Facts abrufen → Inhaltsstoffe farblich einstufen.
+
+Umgesetzt:
+- Barcode-Scan-Screen (`mobile_scanner`) und Produkt-Screen
+- Open-Beauty-Facts-Abfrage nach Barcode-Scan
+- Ampel-Einstufung auf Basis eines echten COSING-CSV-Imports (grün/gelb/orange/rot)
+  - Grün: bekannte unbedenkliche Inhaltsstoffe
+  - Orange: Annex-IV-VI-Stoffe mit konkreten Auflagen (statt pauschalem Verbot)
+  - Rot: verbotene/stark eingeschränkte Stoffe, inkl. CMR-Einstufung (krebserregend/mutagen/fortpflanzungsgefährdend)
+  - Blau: Mikroplastik (Beat-the-Microbead-Liste)
+- Persistente Detail-Box pro Inhaltsstoff (statt Tooltip)
+- Gesundheitsfokussierte Text-Zusammenfassung pro Produkt
+
+Noch offen: iOS, Nutzerkonten/Cloud-Historie (bewusst out of scope, siehe unten).
+
+Nächste Schritte siehe [docs/setup-installation.md](docs/setup-installation.md).
