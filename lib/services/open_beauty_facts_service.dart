@@ -16,9 +16,17 @@ class OpenBeautyFactsService {
       '/api/v2/product/$barcode.json',
     );
     final response = await http
-        .get(uri)
+        .get(
+          uri,
+          // Open Beauty Facts asks API clients to identify themselves via
+          // User-Agent; unidentified requests can be throttled, which shows
+          // up as slow responses/timeouts. See https://openfoodfacts.github.io/openfoodfacts-server/api/
+          headers: const {
+            'User-Agent': 'KosmetikScanner/1.0 (Flutter; Android)',
+          },
+        )
         .timeout(
-          const Duration(seconds: 10),
+          const Duration(seconds: 15),
           onTimeout: () => throw ProductFetchTimeoutException(),
         );
 

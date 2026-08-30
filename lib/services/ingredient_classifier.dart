@@ -41,18 +41,23 @@ class IngredientClassification {
   final bool isMineralOilDerived;
 
   /// Worth surfacing in the health-focused summary at the top of the
-  /// product screen: banned substances, restricted/microplastic entries
-  /// with a documented CMR reason, or anything with a researched emerging
+  /// product screen: banned substances, restricted entries with a
+  /// documented CMR reason, or anything with a researched emerging
   /// concern — even if the concern is a processing/degradation byproduct
   /// rather than the listed substance itself (e.g. Octocrylene). Pure
   /// fragrance allergens are deliberately excluded: that's a declaration
   /// requirement for people with contact allergies, not a "makes you
   /// sick" signal, so it doesn't belong in a health-risk summary.
+  ///
+  /// Microplastic is NOT included here — it's an environmental
+  /// accumulation concern, not a CMR/health claim, and must not be shown
+  /// under a "krebserregend" heading. See [isMicroplastic] for that.
   bool get isHealthFlag =>
       rating == IngredientRating.banned ||
-      rating == IngredientRating.microplastic ||
       (rating == IngredientRating.restricted && cmr != null) ||
       emergingConcern != null;
+
+  bool get isMicroplastic => rating == IngredientRating.microplastic;
 
   String get tooltip {
     final buffer = StringBuffer(rating.label);

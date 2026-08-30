@@ -16,13 +16,19 @@ class ProductScreen extends StatefulWidget {
 class _ProductScreenState extends State<ProductScreen> {
   final _service = OpenBeautyFactsService();
   final _classifier = const IngredientClassifier();
-  late final Future<Product> _future;
+  late Future<Product> _future;
   int? _expandedIndex;
 
   @override
   void initState() {
     super.initState();
     _future = _service.fetchProduct(widget.barcode);
+  }
+
+  void _retry() {
+    setState(() {
+      _future = _service.fetchProduct(widget.barcode);
+    });
   }
 
   void _toggleExpanded(int index) {
@@ -63,7 +69,19 @@ class _ProductScreenState extends State<ProductScreen> {
             body: Center(
               child: Padding(
                 padding: const EdgeInsets.all(24),
-                child: Text(message, textAlign: TextAlign.center),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(message, textAlign: TextAlign.center),
+                    if (error is! ProductNotFoundException) ...[
+                      const SizedBox(height: 16),
+                      FilledButton(
+                        onPressed: _retry,
+                        child: const Text('Erneut versuchen'),
+                      ),
+                    ],
+                  ],
+                ),
               ),
             ),
           );
@@ -79,6 +97,9 @@ class _ProductScreenState extends State<ProductScreen> {
         ];
         final healthFlags = classifications
             .where((e) => e.classification.isHealthFlag)
+            .toList();
+        final microplastic = classifications
+            .where((e) => e.classification.isMicroplastic)
             .toList();
         final palmOil = classifications
             .where((e) => e.classification.isPalmOilDerived)
@@ -107,6 +128,7 @@ class _ProductScreenState extends State<ProductScreen> {
                 const SizedBox(height: 16),
                 _HealthSummaryCard(
                   healthFlags: healthFlags,
+                  microplastic: microplastic,
                   palmOil: palmOil,
                   mineralOil: mineralOil,
                 ),
@@ -171,11 +193,13 @@ typedef _ClassifiedIngredient =
 class _HealthSummaryCard extends StatelessWidget {
   const _HealthSummaryCard({
     required this.healthFlags,
+    required this.microplastic,
     required this.palmOil,
     required this.mineralOil,
   });
 
   final List<_ClassifiedIngredient> healthFlags;
+  final List<_ClassifiedIngredient> microplastic;
   final List<_ClassifiedIngredient> palmOil;
   final List<_ClassifiedIngredient> mineralOil;
 
@@ -183,7 +207,10 @@ class _HealthSummaryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final hasAnything =
-        healthFlags.isNotEmpty || palmOil.isNotEmpty || mineralOil.isNotEmpty;
+        healthFlags.isNotEmpty ||
+        microplastic.isNotEmpty ||
+        palmOil.isNotEmpty ||
+        mineralOil.isNotEmpty;
 
     return Container(
       width: double.infinity,
@@ -210,20 +237,30 @@ class _HealthSummaryCard extends StatelessWidget {
           if (!hasAnything)
             const Text(
               'Keine krebserregenden/potenziell krebserregenden oder '
-              'sonst krankmachenden Stoffe, kein Palmöl, kein Mineralöl '
-              'anhand der Zutatenliste erkannt.',
+              'sonst krankmachenden Stoffe, kein Mikroplastik, kein '
+              'Palmöl, kein Mineralöl anhand der Zutatenliste erkannt.',
             ),
           if (healthFlags.isNotEmpty)
             _SummarySection(
               title: 'Krebserregend / potenziell krankmachend',
               entries: healthFlags,
             ),
-          if (palmOil.isNotEmpty) ...[
+          if (microplastic.isNotEmpty) ...[
             if (healthFlags.isNotEmpty) const SizedBox(height: 12),
+            _SummarySection(
+              title: 'Mikroplastik enthalten',
+              entries: microplastic,
+            ),
+          ],
+          if (palmOil.isNotEmpty) ...[
+            if (healthFlags.isNotEmpty || microplastic.isNotEmpty)
+              const SizedBox(height: 12),
             _SummarySection(title: 'Palmöl enthalten', entries: palmOil),
           ],
           if (mineralOil.isNotEmpty) ...[
-            if (healthFlags.isNotEmpty || palmOil.isNotEmpty)
+            if (healthFlags.isNotEmpty ||
+                microplastic.isNotEmpty ||
+                palmOil.isNotEmpty)
               const SizedBox(height: 12),
             _SummarySection(title: 'Mineralöl enthalten', entries: mineralOil),
           ],
