@@ -1,19 +1,35 @@
-# To-Do
+---
+typ: dynamisch
+bereich: produkt
+produkt: Code-Scanner
+quelle: beides
+aktualisiert: 2026-10-31
+---
 
-- [ ] Mikroplastik-Fix an echtem Produkt verifizieren: prüfen, dass ein Inhaltsstoff mit reiner Mikroplastik-Einstufung (ohne CMR-Grund) in der Produkt-Zusammenfassung unter "Mikroplastik enthalten" erscheint und **nicht** mehr unter "Krebserregend / potenziell krankmachend" ([ingredient_classifier.dart](../lib/services/ingredient_classifier.dart), [product_screen.dart](../lib/screens/product_screen.dart)). Aktuell nicht testbar, da `openbeautyfacts.org` ausgefallen ist — sobald der Server wieder erreichbar ist, mit einem bekannten Produkt nachprüfen (z.B. eines mit Polyethylene/Nylon in der Zutatenliste).
-- [ ] App im eigenen Portfolio aufführen.
+# Backlog und Testbefunde
 
-## Fachlich / Datenqualität
+## Übersicht
+Technische Aufgaben und Testbefunde des Code-Scanners, nach Priorität sortiert. Claude Code nutzt die Liste als Arbeitsgrundlage und aktualisiert sie am Ende einer Session. Aufgaben für Pia (testen, entscheiden) stehen nicht hier, sondern in ihrem privaten Vault (`_To Do.md`).
 
-- [ ] INCI-Namensvarianten/Synonyme beim Abgleich Inhaltsstoff ↔ Referenzliste behandeln (z.B. Groß-/Kleinschreibung wird schon normalisiert, aber unterschiedliche Schreibweisen/Synonyme desselben Stoffs noch nicht) — siehe [docs/data-sources.md](data-sources.md#offene-fragen-für-später).
-- [ ] Update-Rhythmus für die lokale COSING-Referenzliste festlegen (EU-Kosmetikverordnung wird gelegentlich novelliert).
+## Offene Aufgaben (nach Priorität)
+1. [ ] **Mikroplastik-Fix an echtem Produkt verifizieren:** Ein Inhaltsstoff mit reiner Mikroplastik-Einstufung (ohne CMR-Grund) muss in der Zusammenfassung unter „Mikroplastik enthalten“ erscheinen, nicht unter „Krebserregend / potenziell krankmachend“ ([ingredient_classifier.dart](../lib/services/ingredient_classifier.dart), [product_screen.dart](../lib/screens/product_screen.dart)). Mit einem bekannten Produkt mit Polyethylene oder Nylon prüfen, sobald Open Beauty Facts erreichbar ist.
+2. [ ] **Update-Rhythmus für die lokale COSING-Referenzliste festlegen** (EU-Kosmetikverordnung wird gelegentlich novelliert).
+3. [ ] **INCI-Namensvarianten und Synonyme** beim Abgleich Inhaltsstoff ↔ Referenzliste behandeln. Groß- und Kleinschreibung wird schon normalisiert, Synonyme noch nicht ([data-sources.md](data-sources.md#offene-fragen-für-später)).
+4. [ ] **Tests für die Klassifizierungslogik** ergänzen ([ingredient_classifier.dart](../lib/services/ingredient_classifier.dart)). Bisher nur ein Widget-Test ([test/widget_test.dart](../test/widget_test.dart)).
+5. [ ] **Fallback „Produkt nicht gefunden“ ausbauen:** Bisher nur Fehlermeldung, vorgesehen war zusätzlich ein Hinweis „manuell erfassen?“ ([open_beauty_facts_service.dart](../lib/services/open_beauty_facts_service.dart)).
+6. [ ] **CI-Workflow** für `flutter analyze` und `flutter test` (bisher kein `.github/workflows`).
+7. [ ] **[setup-installation.md](setup-installation.md) aktualisieren:** Flutter und Android Studio sind inzwischen installiert.
 
-## UX
+## Testbefunde
 
-- [ ] Fallback für "Produkt nicht gefunden" ausbauen: aktuell nur Fehlermeldung, in den Docs war zusätzlich ein Hinweis "manuell erfassen?" vorgesehen ([open_beauty_facts_service.dart](../lib/services/open_beauty_facts_service.dart)).
+| Datum | Gerät | Schritte | Erwartet | Tatsächlich | Status |
+|---|---|---|---|---|---|
+| bis 31.10.2026 | Android-Handy | Produkte in der Drogerie gescannt | Produkt und Inhaltsstoffe werden angezeigt | Kein getestetes Produkt war in der Datenbank vorhanden | offen |
+| ⚠️ offen | Android-Handy | Live-Test | Abfrage liefert Ergebnis | Timeout-Fehler | behoben |
+| ⚠️ offen | Android-Handy | Produkt mit bestimmtem Inhaltsstoff geprüft | Korrekte Einordnung in der Gesundheits-Zusammenfassung | Inhaltsstoff irreführend eingeordnet | behoben |
 
-## Tests / Infrastruktur
+## Erledigt
+- [x] App im eigenen Portfolio aufgeführt (Seite `Projekte_Code_Scanner.html`).
 
-- [ ] Tests für die Klassifizierungslogik ergänzen ([ingredient_classifier.dart](../lib/services/ingredient_classifier.dart)) — aktuell existiert nur ein einzelner Widget-Test ([test/widget_test.dart](../test/widget_test.dart)), der nur prüft, ob der Scan-Screen angezeigt wird.
-- [ ] CI-Workflow einrichten, der `flutter analyze` und `flutter test` automatisch laufen lässt (aktuell kein `.github/workflows` vorhanden).
-- [ ] [docs/setup-installation.md](setup-installation.md) aktualisieren — Flutter/Android Studio sind inzwischen installiert, die Doku sagt noch "noch nicht installiert".
+## Offene Punkte
+- ⚠️ offen: Ursache des Drogerie-Befunds. Entweder fehlen die Produkte in Open Beauty Facts, oder der Server war ausgefallen (siehe Aufgabe 1). Solange kein Produkt gefunden wird, ist das Erfolgskriterium „Pia nutzt den Code-Scanner statt CodeCheck“ nicht erreichbar.
